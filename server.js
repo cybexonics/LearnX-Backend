@@ -50,7 +50,7 @@ app.use(cookieParser());
 // CORS configuration - more secure
 app.use(
   cors({
-    origin:"https://application-backend-lemon.vercel.app", // Use environment variable for client URL
+    origin:["https://application-backend-lemon.vercel.app","https://learn-x-website-nirv.vercel.app"], // Use environment variable for client URL
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
