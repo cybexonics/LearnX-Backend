@@ -29,12 +29,138 @@ const app = express();
 const server = http.createServer(app);
 
 // Initialize Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:8080",
+      "https://learn-x-website-nirv.vercel.app"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  },
+});
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// ✅ Updated CORS configuration
+app.use(
+  cors({
+    origin: [
+      "http://localhost:8080", 
+      "https://learn-x-website-nirv.vercel.app"
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+
+app.use(helmet());
+app.use(morgan("dev"));
+
+// Serve static files
+const __filename = new URL(import.meta.url).pathname;
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, "public")));
+
+// Database connection
+mongoose
+  .connect(process.env.MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => console.log("Connected to MongoDB"))
+  .catch((err) => console.error("MongoDB connection error:", err));
+
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/user", userRoutes);
+app.use("/api/courses", courseRoutes);
+app.use("/api/courses", contentRoutes);
+app.use("/api/courses", sessionRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/enrollments", enrollmentRoutes);
+app.use("/api/progress", progressRoutes);
+app.use("/api/certificate", certificateRoutes);
+app.use("/api/admin", adminRoutes);
+
+// API documentation route
+app.get("/api-docs", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// Admin panel route
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
+
+// Live Broadcasting Session Management
+const sessions = new Map();
+// ... (⚡ everything else in your file stays the same here)
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    message: "Internal server error",
+    error: process.env.NODE_ENV === "development" ? err.message : undefined,
+  });
+});
+
+// Start server
+const PORT = process.env.PORT || 5050;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`Admin Panel: http://localhost:${PORT}/admin`);
+});
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import http from "http";
+import { Server } from "socket.io";
+import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import morgan from "morgan";
+import path from "path"; // Keep path for static serving even if direct path is used
+
+// Import routes
+import authRoutes from "./routes/auth.js";
+import userRoutes from "./routes/users.js";
+import courseRoutes from "./routes/courses.js";
+import contentRoutes from "./routes/content.js";
+import sessionRoutes from "./routes/sessions.js";
+import paymentRoutes from "./routes/payments.js";
+import enrollmentRoutes from "./routes/enrollments.js";
+import progressRoutes from "./routes/progress.js";
+import certificateRoutes from "./routes/certificates.js";
+import adminRoutes from "./routes/admin.js";
+
+// Load environment variables
+dotenv.config();
+
+// Initialize Express app
+const app = express();
+const server = http.createServer(app);
+
+// Initialize Socket.IO
 // For Vercel, it's often better to explicitly set the path for Socket.IO
 // if you plan to have a separate Socket.IO client.
 // However, if your client will connect to the same base URL, this is fine.
 const io = new Server(server, {
   cors: {
-    origin:"https://learnx-backend-h6h0.onrender.com", // Use environment variable for client URL
+    // ✅ UPDATED: allow local dev + live vercel
+    origin: [
+      "http://localhost:8080",
+      "https://learn-x-website-nirv.vercel.app",
+      "https://learn-x-website-nirv-m2h0r6kj9.vercel.app",
+      "https://learnx-backend-h6h0.onrender.com"
+    ], // Use environment variable for client URL
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   },
@@ -50,7 +176,13 @@ app.use(cookieParser());
 // CORS configuration - more secure
 app.use(
   cors({
-    origin:["https://learn-x-website-nirv-m2h0r6kj9.vercel.app", "https://learnx-backend-h6h0.onrender.com"], // Use environment variable for client URL
+    // ✅ UPDATED: allow local dev + live vercel (kept your existing origins)
+    origin: [
+      "http://localhost:8080",
+      "https://learn-x-website-nirv.vercel.app",
+      "https://learn-x-website-nirv-m2h0r6kj9.vercel.app",
+      "https://learnx-backend-h6h0.onrender.com"
+    ], // Use environment variable for client URL
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
