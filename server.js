@@ -533,3 +533,10 @@ server.listen(PORT, () => {
 // or runs it as a long-running process in their infrastructure (though "serverless" is the default paradigm).
 // You just need to ensure your `listen` call is at the top level for Vercel to pick it up.
 // Therefore, remove the `export const handler = serverless(app)` and `export default server`.
+{
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
+
