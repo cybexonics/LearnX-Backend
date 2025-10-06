@@ -28,25 +28,24 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// ✅ ADDED: Fix preflight and CORS before everything
+// ✅ Define allowed origins once
 const allowedOrigins = [
   "http://localhost:8080",
   "https://learn-x-website-nirv.vercel.app",
   "https://learn-x-website-nirv-m2h0r6kj9.vercel.app",
-  "https://learnx-backend-h6h0.onrender.com"
+  "https://learnx-backend-h6h0.onrender.com",
 ];
 
+// ✅ Global manual CORS headers to fix preflight
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
   }
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200); // ✅ Handle preflight requests
-  }
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  if (req.method === "OPTIONS") return res.sendStatus(200);
   next();
 });
 
@@ -64,7 +63,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// ✅ FIXED: CORS middleware (kept your original + top fix)
+// ✅ Proper CORS middleware still kept
 app.use(
   cors({
     origin: allowedOrigins,
@@ -74,10 +73,9 @@ app.use(
   })
 );
 
-// ✅ ADDED: Extra protection for OPTIONS requests (Render often needs this)
+// ✅ Extra line for OPTIONS handling
 app.options("*", cors());
 
-// Security and logs
 app.use(helmet());
 app.use(morgan("dev"));
 
@@ -120,16 +118,19 @@ app.get("/admin", (req, res) => {
 // Live Broadcasting Session Management
 const sessions = new Map();
 
-// ⚡ Everything below stays exactly as in your version (unchanged)
+// Socket.IO WebRTC signaling for broadcasting
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
   socket.on("join-broadcast", (roomId, userId, userType) => {
     if (!roomId || !userId || !["instructor", "student"].includes(userType)) {
       socket.emit("error", "Invalid join parameters.");
       return;
     }
+
     socket.join(roomId);
     let session = sessions.get(roomId);
+
     if (!session) {
       session = {
         instructor: null,
@@ -141,15 +142,22 @@ io.on("connection", (socket) => {
       };
       sessions.set(roomId, session);
     }
+
     if (userType === "instructor") {
-      if (session.instructor && session.instructor.active && session.instructor.socketId !== socket.id) {
+      if (
+        session.instructor &&
+        session.instructor.active &&
+        session.instructor.socketId !== socket.id
+      ) {
         socket.emit("error", "Another instructor is already active in this session.");
         socket.leave(roomId);
         return;
       }
+
       session.instructor = { id: userId, socketId: socket.id, active: true };
       session.isLive = true;
       session.startTime = session.startTime || new Date();
+
       io.to(roomId).emit("broadcast-started", {
         instructorId: userId,
         startTime: session.startTime,
@@ -160,6 +168,7 @@ io.on("connection", (socket) => {
         active: true,
         joinedAt: new Date(),
       });
+
       if (session.instructor && session.instructor.active) {
         io.to(session.instructor.socketId).emit("student-joined", {
           roomId,
@@ -167,6 +176,7 @@ io.on("connection", (socket) => {
           totalStudents: session.students.size,
         });
       }
+
       socket.emit("session-info", {
         isLive: session.isLive,
         startTime: session.startTime,
@@ -175,6 +185,7 @@ io.on("connection", (socket) => {
         instructorActive: session.instructor?.active || false,
       });
     }
+
     io.to(roomId).emit("participants-updated", {
       count: session.students.size + (session.instructor?.active ? 1 : 0),
     });
@@ -184,6 +195,7 @@ io.on("connection", (socket) => {
 // API endpoint to get active sessions
 app.get("/api/live-sessions", (req, res) => {
   const activeSessions = [];
+
   sessions.forEach((session, roomId) => {
     if (session.isLive && session.instructor?.active) {
       activeSessions.push({
@@ -194,6 +206,7 @@ app.get("/api/live-sessions", (req, res) => {
       });
     }
   });
+
   res.json({
     success: true,
     sessions: activeSessions,
@@ -210,6 +223,11 @@ app.use((err, req, res, next) => {
   });
 });
 
+// ✅ Health check route for Render
+app.get("/", (req, res) => {
+  res.status(200).send("LearnX backend is running successfully 🚀");
+});
+
 // Start server
 const PORT = process.env.PORT || 5050;
 server.listen(PORT, () => {
@@ -218,20 +236,5 @@ server.listen(PORT, () => {
   console.log(`Admin Panel: http://localhost:${PORT}/admin`);
 });
 
-// ✅ ADDED: Health check route (Render keeps container alive)
-app.get("/", (req, res) => {
-  res.status(200).send("LearnX backend is running successfully 🚀");
-});
-
-// ✅ ADDED: Confirm server.js is executed
-console.log("✅ LearnX backend initialized properly");
-
-// ✅ package.json remains same
-/*
-{
-  "type": "module",
-  "scripts": {
-    "start": "node server.js"
-  }
-}
-*/
+// ✅ Confirm start
+console.log("✅ LearnX backend initialized successfully");
