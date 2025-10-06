@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
-  "author": "",
+  "author": "Sanskar Bandgar <mr.sanskar19@gmail.com> (Fullstack Developer | Freelancer)",
   "license": "ISC",
   "keywords": [],
   "description": "",
@@ -30,10 +30,5 @@
     "serverless-http": "^3.2.0",
     "socket.io": "^4.8.1",
     "uuid": "^11.1.0"
-  },
-  "authors": {
-  "name": "Sanskar Bandgar",
-  "role": "Fullstack Developer | Freelancer",
-  "email": "mr.sanskar19@gmail.com"
-}
+  }
 }
