@@ -28,15 +28,16 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// ✅ Define allowed origins once
+// ✅ Allowed frontend origins
 const allowedOrigins = [
   "http://localhost:8080",
   "https://learn-x-website-nirv.vercel.app",
   "https://learn-x-website-nirv-m2h0r6kj9.vercel.app",
   "https://learnx-backend-h6h0.onrender.com",
+  "https://learn-x-website-nirv-cybexonics-it-consultants-pvt-s-projects.vercel.app" // ✅ Added your current frontend
 ];
 
-// ✅ Global manual CORS headers to fix preflight
+// ✅ Manual CORS headers to guarantee preflight success
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -45,25 +46,12 @@ app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.setHeader("Access-Control-Allow-Credentials", "true");
+
   if (req.method === "OPTIONS") return res.sendStatus(200);
   next();
 });
 
-// Initialize Socket.IO
-const io = new Server(server, {
-  cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    credentials: true,
-  },
-});
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-// ✅ Proper CORS middleware still kept
+// ✅ Express CORS middleware (still needed for consistency)
 app.use(
   cors({
     origin: allowedOrigins,
@@ -73,11 +61,23 @@ app.use(
   })
 );
 
-// ✅ Extra line for OPTIONS handling
+// ✅ Ensure preflight handled globally
 app.options("*", cors());
 
 app.use(helmet());
 app.use(morgan("dev"));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  },
+});
 
 // Serve static files
 const __filename = new URL(import.meta.url).pathname;
@@ -90,8 +90,8 @@ mongoose
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+  .then(() => console.log("✅ Connected to MongoDB"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -105,6 +105,11 @@ app.use("/api/progress", progressRoutes);
 app.use("/api/certificate", certificateRoutes);
 app.use("/api/admin", adminRoutes);
 
+// Health check route for Render
+app.get("/", (req, res) => {
+  res.status(200).send("✅ LearnX backend is running successfully 🚀");
+});
+
 // API documentation route
 app.get("/api-docs", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
@@ -115,12 +120,11 @@ app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// Live Broadcasting Session Management
+// ---------------- SOCKET.IO ---------------- //
 const sessions = new Map();
 
-// Socket.IO WebRTC signaling for broadcasting
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  console.log("🔌 User connected:", socket.id);
 
   socket.on("join-broadcast", (roomId, userId, userType) => {
     if (!roomId || !userId || !["instructor", "student"].includes(userType)) {
@@ -149,7 +153,7 @@ io.on("connection", (socket) => {
         session.instructor.active &&
         session.instructor.socketId !== socket.id
       ) {
-        socket.emit("error", "Another instructor is already active in this session.");
+        socket.emit("error", "Another instructor is already active.");
         socket.leave(roomId);
         return;
       }
@@ -169,7 +173,7 @@ io.on("connection", (socket) => {
         joinedAt: new Date(),
       });
 
-      if (session.instructor && session.instructor.active) {
+      if (session.instructor?.active) {
         io.to(session.instructor.socketId).emit("student-joined", {
           roomId,
           userId,
@@ -192,7 +196,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// API endpoint to get active sessions
+// Endpoint to get live sessions
 app.get("/api/live-sessions", (req, res) => {
   const activeSessions = [];
 
@@ -207,15 +211,12 @@ app.get("/api/live-sessions", (req, res) => {
     }
   });
 
-  res.json({
-    success: true,
-    sessions: activeSessions,
-  });
+  res.json({ success: true, sessions: activeSessions });
 });
 
-// Error handling middleware
+// Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("❌ Server Error:", err.stack);
   res.status(500).json({
     success: false,
     message: "Internal server error",
@@ -223,18 +224,12 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ✅ Health check route for Render
-app.get("/", (req, res) => {
-  res.status(200).send("LearnX backend is running successfully 🚀");
-});
-
 // Start server
 const PORT = process.env.PORT || 5050;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`API Documentation: http://localhost:${PORT}/api-docs`);
-  console.log(`Admin Panel: http://localhost:${PORT}/admin`);
+  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`📘 API Docs: http://localhost:${PORT}/api-docs`);
+  console.log(`🛠 Admin Panel: http://localhost:${PORT}/admin`);
 });
 
-// ✅ Confirm start
-console.log("✅ LearnX backend initialized successfully");
+console.log("🚀 LearnX backend initialized successfully");
