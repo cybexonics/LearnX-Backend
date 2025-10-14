@@ -26,10 +26,12 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// ✅ Proper CORS configuration for frontend connection
+// ✅ Proper CORS configuration for all frontend deployments
 const allowedOrigins = [
-  "https://learn-x-website.vercel.app", // live frontend
-  "http://localhost:5173"               // local dev (optional)
+  "https://learn-x-website.vercel.app",                    // main site
+  "https://learn-x-website-nirv-b2mysr45c.vercel.app",     // alt Vercel deploy
+  "https://learn-x-website-nirv-dh33d51sb.vercel.app",     // backup deploy
+  "http://localhost:5173"                                  // local dev
 ];
 
 app.use(
@@ -37,6 +39,7 @@ app.use(
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
       if (allowedOrigins.includes(origin)) return callback(null, true);
+      console.warn("❌ Blocked CORS request from:", origin);
       return callback(new Error("Not allowed by CORS"));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
