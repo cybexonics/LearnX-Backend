@@ -38,6 +38,7 @@ app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
+      if (origin && origin.includes("vercel.app")) return callback(null, true); 
       if (allowedOrigins.includes(origin)) return callback(null, true);
       console.warn("❌ Blocked CORS request from:", origin);
       return callback(new Error("Not allowed by CORS"));
