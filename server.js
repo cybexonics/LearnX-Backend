@@ -23,7 +23,7 @@ import adminRoutes from "./routes/admin.js";
 
 // ⬇️ NEW: import the signup controller so we can alias /api/signup
 //    If your file/name differ, adjust this path/named export.
-import { signup as signupController } from "./controllers/authController.js";
+import { register as signupController } from "./controllers/auth.js";
 
 dotenv.config();
 
