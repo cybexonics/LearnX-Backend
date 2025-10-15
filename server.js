@@ -21,6 +21,10 @@ import progressRoutes from "./routes/progress.js";
 import certificateRoutes from "./routes/certificates.js";
 import adminRoutes from "./routes/admin.js";
 
+// ⬇️ NEW: import the signup controller so we can alias /api/signup
+//    If your file/name differ, adjust this path/named export.
+import { signup as signupController } from "./controllers/authController.js";
+
 dotenv.config();
 
 const app = express();
@@ -81,6 +85,10 @@ mongoose
 
 // ✅ API Routes
 app.use("/api/auth", authRoutes);
+
+// ⬇️ NEW: also accept non-API base `/auth/*` (future-proof + easy local testing)
+app.use("/auth", authRoutes);
+
 app.use("/api/user", userRoutes);
 app.use("/api/courses", courseRoutes);
 app.use("/api/courses", contentRoutes);
@@ -90,6 +98,15 @@ app.use("/api/enrollments", enrollmentRoutes);
 app.use("/api/progress", progressRoutes);
 app.use("/api/certificate", certificateRoutes);
 app.use("/api/admin", adminRoutes);
+
+// ⬇️ NEW: Legacy single-endpoint alias so frontend calling /api/signup still works
+//         It directly calls the same controller as /auth/signup.
+app.post("/api/signup", signupController);
+
+// ⬇️ NEW: Consistent JSON 404 for unknown /api/* to avoid HTML responses
+app.use("/api", (req, res, next) => {
+  res.status(404).json({ message: "API route not found" });
+});
 
 // ✅ Health Check
 app.get("/", (req, res) => {
